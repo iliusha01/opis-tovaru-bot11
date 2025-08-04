@@ -83,6 +83,19 @@ bot.on('message', (msg) => {
         username: user.username,
       });
 
+      // Надсилання адміну
+      bot.sendMessage(920291804, `➕ Новий користувач:
+👤 Ім'я: ${user.name}
+📞 Телефон: ${user.phone}
+🔗 Юзернейм: @${user.username}`);
+      
+      
+        id: chatId,
+        name: user.name,
+        phone: user.phone,
+        username: user.username,
+      });
+
       bot.sendMessage(chatId, `Дякую, ${user.name}!\nОсь силка на канал:\n${channelLink}`);
       break;
   }
