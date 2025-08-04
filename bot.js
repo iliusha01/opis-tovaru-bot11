@@ -52,8 +52,7 @@ function checkCompleted(chatId, from) {
 Username: @${username}`;
 
         bot.sendMessage(ADMIN_ID, message);
-        bot.sendMessage(chatId, 'Дякую! Ось доступ до каналу:
-' + CHANNEL_LINK);
+        bot.sendMessage(chatId, 'Дякую! Ось доступ до каналу: ' + CHANNEL_LINK);
         delete users[chatId];
     }
 }
