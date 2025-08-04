@@ -1,76 +1,59 @@
-
-require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
-const fs = require('fs');
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-const channelLink = process.env.CHANNEL_LINK;
-const userDataPath = './users.json';
+const token = '7593968750:AAEqxf9xqvZPOzLpzwW3FFVfUVu804OSzBg';
+const bot = new TelegramBot(token, { polling: true });
 
-let users = {};
+const ADMIN_ID = 920291804;
+const CHANNEL_LINK = 'https://t.me/+N2JJml7IIOthNzE6';
 
-if (fs.existsSync(userDataPath)) {
-  users = JSON.parse(fs.readFileSync(userDataPath));
-}
-
-function saveUser(user) {
-  users[user.id] = user;
-  fs.writeFileSync(userDataPath, JSON.stringify(users, null, 2));
-}
+const users = {};
 
 bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
+    const chatId = msg.chat.id;
+    bot.sendMessage(chatId, 'Привіт! Введи своє імʼя:');
+    users[chatId] = { step: 'name' };
+});
 
-  if (users[chatId]) {
-    bot.sendMessage(chatId, `Ви вже зареєстровані. Ось силка на канал:
-${channelLink}`);
-    return;
-  }
-
-  users[chatId] = { step: 'name' };
-  bot.sendMessage(chatId, 'Привіт! Введи своє імʼя:');
+bot.on('contact', (msg) => {
+    const chatId = msg.chat.id;
+    if (!users[chatId]) users[chatId] = {};
+    users[chatId].phone = msg.contact.phone_number;
+    checkCompleted(chatId, msg.from);
 });
 
 bot.on('message', (msg) => {
-  const chatId = msg.chat.id;
+    const chatId = msg.chat.id;
+    const userData = users[chatId];
 
-  if (!users[chatId] || users[chatId].step === 'done') return;
+    if (!userData) return;
 
-  const user = users[chatId];
-
-  switch (user.step) {
-    case 'name':
-      user.name = msg.text;
-      user.step = 'phone';
-      bot.sendMessage(chatId, 'Тепер введи свій номер телефону:');
-      break;
-    case 'phone':
-      user.phone = msg.text;
-      user.step = 'username';
-      bot.sendMessage(chatId, 'Тепер введи свій Telegram юзернейм (без @):');
-      break;
-    case 'username':
-      user.username = msg.text;
-      user.step = 'done';
-
-      const newUser = {
-        id: chatId,
-        name: user.name,
-        phone: user.phone,
-        username: user.username,
-      };
-
-      saveUser(newUser);
-
-      // Надсилання адміну
-      bot.sendMessage(920291804, `➕ Новий користувач:
-👤 Ім'я: ${newUser.name}
-📞 Телефон: ${newUser.phone}
-🔗 Юзернейм: @${newUser.username}`);
-
-      bot.sendMessage(chatId, `Дякую, ${newUser.name}!
-Ось силка на канал:
-${channelLink}`);
-      break;
-  }
+    if (userData.step === 'name') {
+        userData.name = msg.text;
+        userData.step = 'phone';
+        bot.sendMessage(chatId, 'Тепер поділись номером телефону, натиснувши кнопку нижче.', {
+            reply_markup: {
+                keyboard: [[{ text: "Надіслати номер телефону", request_contact: true }]],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            }
+        });
+    }
 });
+
+function checkCompleted(chatId, from) {
+    const user = users[chatId];
+    if (user.name && user.phone) {
+        const username = from.username || 'не вказано';
+        user.username = username;
+
+        const message = `👤 Новий користувач:
+Імʼя: ${user.name}
+Телефон: ${user.phone}
+Username: @${username}`;
+
+        bot.sendMessage(ADMIN_ID, message);
+        bot.sendMessage(chatId, 'Дякую! Ось доступ до каналу:
+' + CHANNEL_LINK);
+        delete users[chatId];
+    }
+}
